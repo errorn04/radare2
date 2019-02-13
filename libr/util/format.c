@@ -2111,30 +2111,6 @@ R_API int r_print_format(RPrint *p, ut64 seek, const ut8* b, const int len,
 				break;
 			}
 
-			/* flags */
-			if (mode & R_PRINT_SEEFLAGS && isptr != NULLPTR) {
-				char *newname = NULL;
-				if (!fieldname) {
-					newname = fieldname = r_str_newf ("pf.%"PFMT64u, seeki);
-				}
-				if (mode & R_PRINT_UNIONMODE) {
-					p->cb_printf ("f %s=0x%08"PFMT64x"\n", formatname, seeki);
-					goto beach;
-				} else if (tmp == '?') {
-					p->cb_printf ("f %s.%s_", fmtname, fieldname);
-				} else if (tmp == 'E') {
-					p->cb_printf ("f %s=0x%08"PFMT64x"\n", fieldname, seeki);
-				} else if (slide/STRUCTFLAG>0 && idx==1) {
-					p->cb_printf ("%s=0x%08"PFMT64x"\n", fieldname, seeki);
-				} else {
-					p->cb_printf ("f %s=0x%08" PFMT64x "\n", fieldname, seeki);
-				}
-				if (newname) {
-					R_FREE (newname);
-					fieldname = NULL;
-				}
-			}
-
 			/* dot */
 			if (mode & R_PRINT_DOT) {
 				if (fieldname) {
@@ -2179,6 +2155,7 @@ R_API int r_print_format(RPrint *p, ut64 seek, const ut8* b, const int len,
 			}
 			bool noline = false;
 
+			int oi = i;
 			if (isptr == NULLPTR) {
 				if (MUSTSEEJSON) {
 					p->cb_printf ("\"NULL\"}", tmp, seek + i);
@@ -2457,6 +2434,34 @@ R_API int r_print_format(RPrint *p, ut64 seek, const ut8* b, const int len,
 					invalid = 1;
 					break;
 				} //switch
+			/* flags */
+			if (mode & R_PRINT_SEEFLAGS && isptr != NULLPTR) {
+				char *newname = NULL;
+				if (!fieldname) {
+					newname = fieldname = r_str_newf ("pf.%"PFMT64u, seeki);
+				}
+				int sz = i - oi;
+				if (sz < 1) {
+					sz = 0; // honor alignment? warn?
+				}
+				if (mode & R_PRINT_UNIONMODE) {
+					p->cb_printf ("f %s %d 0x%08"PFMT64x"\n", formatname, sz, seeki);
+					goto beach;
+				} else if (tmp == '?') {
+					p->cb_printf ("f %s.%s_", fmtname, fieldname);
+				} else if (tmp == 'E') {
+					p->cb_printf ("f %s %d 0x%08"PFMT64x"\n", fieldname, sz, seeki);
+				} else if (slide/STRUCTFLAG>0 && idx==1) {
+					p->cb_printf ("%s=0x%08"PFMT64x"\n", fieldname, seeki);
+				} else {
+					p->cb_printf ("f %s %d 0x%08" PFMT64x "\n", fieldname, sz, seeki);
+				}
+				if (newname) {
+					R_FREE (newname);
+					fieldname = NULL;
+				}
+			}
+
 			}
 			if (mode & R_PRINT_DOT) {
 				p->cb_printf ("}");
